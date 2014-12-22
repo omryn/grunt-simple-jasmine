@@ -26,17 +26,14 @@ module.exports = function (grunt) {
     });
   }
 
-  function makeTaskAsync(self, jasmine) {
-    var done = self.async();
-    jasmine.addReporter({
-      jasmineDone: function () {
-        done();
-      }
-    });
+  function slugishDebugWorkAround(jasmine, global) {
+    if (global.v8debug) {
+      jasmine.env.beforeAll(function () {
+        // Sluginsh debug mode workaround
+        global.jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
+      })
+    }
   }
-
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
 
   grunt.registerMultiTask('simpleJasmine', 'Simple jasmine grunt plugin', function () {
     // Merge task-specific and/or target-specific options with these defaults.
@@ -47,21 +44,25 @@ module.exports = function (grunt) {
         TapReporter: false,
         TeamcityReporter: false,
         TerminalReporter: false
-      }
+      },
+      spec_dir: "spec",
+      spec_files: ["**/*[sS]pec.js"],
+      helpers: ["**/*[Hh]elper?.js"]
     });
 
+
     var path = require('path'),
-        Command = require('jasmine/lib/command'),
-        command = new Command(path.resolve()),
         Jasmine = require('jasmine/lib/jasmine'),
-        jasmine = new Jasmine({projectBaseDir: path.resolve()});
+        jasmine = new Jasmine();
 
+    slugishDebugWorkAround(jasmine, global);
 
+    jasmine.loadConfig(options);
     addReporters(jasmine, options.reporters);
-    makeTaskAsync(this, jasmine);
-
-    grunt.log.writeln('Running jasmine at ' + path.resolve());
-    command.run(jasmine, []);
+    jasmine.configureDefaultReporter({
+      onComplete: this.async()
+    });
+    jasmine.execute();
   });
 
 };
