@@ -12,16 +12,25 @@ module.exports = function (grunt) {
 
   function addReporters(jasmine, reporters) {
     var jasmineReporters = require('jasmine-reporters');
-    Object.keys(reporters || {}).forEach(function (repName){
+    Object.keys(reporters || {}).forEach(function (repName) {
       var repOptions = reporters[repName];
-      if (repOptions ) {
-      if (jasmineReporters[repName] instanceof Function) {
-        var reporter = new jasmineReporters[repName](repOptions);
-        jasmine.addReporter(reporter);
-      } else {
-        grunt.warn('Invalid reporter: ' + repName);
-      }
+      if (repOptions) {
+        if (jasmineReporters[repName] instanceof Function) {
+          var reporter = new jasmineReporters[repName](repOptions);
+          jasmine.addReporter(reporter);
+        } else {
+          grunt.warn('Invalid reporter: ' + repName);
+        }
 
+      }
+    });
+  }
+
+  function makeTaskAsync(self, jasmine) {
+    var done = self.async();
+    jasmine.addReporter({
+      jasmineDone: function () {
+        done();
       }
     });
   }
@@ -49,7 +58,9 @@ module.exports = function (grunt) {
 
 
     addReporters(jasmine, options.reporters);
+    makeTaskAsync(this, jasmine);
 
+    grunt.log.writeln('Running jasmine at ' + path.resolve());
     command.run(jasmine, []);
   });
 
