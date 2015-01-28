@@ -57,6 +57,21 @@ module.exports = function (grunt) {
 
     slugishDebugWorkAround(jasmine, global);
 
+    // Explicit failure for invalid spec files
+    Jasmine.prototype.loadSpecs = function() {
+      this.specFiles.forEach(function(file) {
+        try {
+          // Each file is wrapped with a suite titled by the file name
+          describe(file + '\n', function(){
+            require(file);
+          });
+        } catch (err) {
+          grunt.log.error('Error requiring file "'+file+'":');
+          grunt.log.error(err, err.stack);
+        }
+      });
+    };
+
     jasmine.loadConfig(options);
     addReporters(jasmine, options.reporters);
     jasmine.configureDefaultReporter({
